@@ -8,7 +8,6 @@ conn = sqlite3.connect(sqlite_db_path)
 cursor = conn.cursor()
 
 def jeanRenoMovies():
-    # replace the table and column names according to your database schema
     query = """
     SELECT m.originalTitle
     FROM movies m
@@ -55,15 +54,13 @@ def troisMeilleursFilmsHorreur2000():
 
 def scenaristesFilmsJamaisJouesEspagne():
     query = """
-    SELECT p.primaryName
-    FROM persons p
-    WHERE p.pid NOT IN (
-        SELECT p.pid
-        FROM persons p
-        JOIN principals pr ON p.pid = pr.pid
-        JOIN movies m ON pr.mid = m.mid
-        JOIN genres g ON m.mid = g.mid
-        WHERE g.genres LIKE '%Drama%' AND m.country = 'Spain'
+    SELECT w.pid
+    FROM writers w
+    WHERE NOT EXISTS (
+	SELECT 1
+	FROM titles t
+	WHERE w.mid = t.mid
+	AND t.region="ES"
     )
     """
 
@@ -77,7 +74,7 @@ def scenaristesFilmsJamaisJouesEspagne():
     cursor.close()
     conn.close()
 
-def main():
+def main(): 
     scenaristesFilmsJamaisJouesEspagne()
 
 main()
