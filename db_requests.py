@@ -3,11 +3,10 @@ import sqlite3
 # path to our SQLite database
 sqlite_db_path = 'database.db'
 
-# connect to the SQLite database
-conn = sqlite3.connect(sqlite_db_path)
-cursor = conn.cursor()
-
 def jeanRenoMovies():
+    conn = sqlite3.connect(sqlite_db_path)
+    cursor = conn.cursor()
+
     query = """
     SELECT m.originalTitle
     FROM movies m
@@ -31,6 +30,9 @@ def jeanRenoMovies():
     conn.close()
 
 def troisMeilleursFilmsHorreur2000():
+    conn = sqlite3.connect(sqlite_db_path)
+    cursor = conn.cursor()
+
     query = """
     SELECT m.originalTitle
     FROM movies m
@@ -53,6 +55,9 @@ def troisMeilleursFilmsHorreur2000():
     conn.close()
 
 def scenaristesFilmsJamaisJouesEspagne():
+    conn = sqlite3.connect(sqlite_db_path)
+    cursor = conn.cursor()
+
     query = """
     SELECT w.pid
     FROM writers w
@@ -66,15 +71,106 @@ def scenaristesFilmsJamaisJouesEspagne():
 
     cursor.execute(query)
 
-    films = cursor.fetchall()
+    scenaristes = cursor.fetchall()
 
-    for film in films:
-        print(film[0])
+    for scenariste in scenaristes:
+        print(scenariste[0])
+
+    cursor.close()
+    conn.close()
+
+# Quels acteurs ont joué le plus de rôles différents dans un même film ?
+def acteursPlusDeRolesDansUnFilm():
+    conn = sqlite3.connect(sqlite_db_path)
+    cursor = conn.cursor()
+
+    query = """
+    SELECT p.primaryName, COUNT(*) as count
+    FROM persons p
+    JOIN principals pr ON p.pid = pr.pid
+    GROUP BY pr.mid
+    ORDER BY count DESC
+    """
+
+    cursor.execute(query)
+
+    acteurs = cursor.fetchall()
+
+    for acteur in acteurs:
+        print(acteur[0])
+
+    cursor.close()
+    conn.close()
+
+# Quelles personnes ont vu leur carrière propulsée par Avatar (quel que soit leur métier), et alors
+# qu’elles n’étaient pas connues avant (ayant seulement participé à des films avec moins de 200000
+# votes avant avatar), elles sont apparues par la suite dans un film à succès (nombre de votes >
+# 200000) ? Notez que les films ne sont pas ordonnés par date de sortie, et donc on utilisera l’année
+# de sortie du film (strictement avant / après celle d’Avatar).
+
+def carrierePropulseeParAvatar():
+    conn = sqlite3.connect(sqlite_db_path)
+    cursor = conn.cursor()
+
+    query = """
+    WITH AvatarPersons AS (
+        SELECT DISTINCT p.pid
+        FROM principals AS p
+        JOIN movies AS m ON p.mid = m.mid
+        WHERE m.primaryTitle = 'Avatar' AND m.startYear = 2009
+    ),
+    BeforeAvatar AS (
+        SELECT p.pid, COUNT(m.mid) AS MovieCount
+        FROM principals AS p
+        JOIN movies AS m ON p.mid = m.mid
+        JOIN ratings AS r ON m.mid = r.mid
+        WHERE m.startYear < 2009 AND r.numVotes < 200000
+        GROUP BY p.pid
+    ),
+    AfterAvatarSuccess AS (
+        SELECT p.pid, COUNT(m.mid) AS MovieCount
+        FROM principals AS p
+        JOIN movies AS m ON p.mid = m.mid
+        JOIN ratings AS r ON m.mid = r.mid
+        WHERE m.startYear > 2009 AND r.numVotes > 200000
+        GROUP BY p.pid
+    ),
+    EligiblePersons AS (
+        SELECT ap.pid
+        FROM AvatarPersons AS ap
+        JOIN AfterAvatarSuccess AS aas ON ap.pid = aas.pid
+        LEFT JOIN BeforeAvatar AS ba ON ap.pid = ba.pid
+        WHERE ba.pid IS NULL OR ba.MovieCount = 0
+    )
+    SELECT p.pid, p.primaryName, p.birthYear
+    FROM EligiblePersons AS ep
+    JOIN persons AS p ON ep.pid = p.pid;
+    """
+
+    cursor.execute(query)
+
+    personnes = cursor.fetchall()
+
+    for personne in personnes:
+        print(personne[1])
 
     cursor.close()
     conn.close()
 
 def main(): 
+    print("\nFilmes de Jean Reno:")
+    jeanRenoMovies()
+
+    print("\nTrois meilleurs filmes d'erreurs de 2000 jusqu'a 2009:")
+    troisMeilleursFilmsHorreur2000()
+
+    print("\nScénaristes qui n'ont jamais écrit un filme qui a été joué en espagne:")
     scenaristesFilmsJamaisJouesEspagne()
+
+    print("\nActeurs qui ont joué dans plusieurs rôles au m ême filme:")
+    acteursPlusDeRolesDansUnFilm()
+
+    print("\nPersonnes avec carrière propulsée par Avatar:")
+    carrierePropulseeParAvatar()
 
 main()
