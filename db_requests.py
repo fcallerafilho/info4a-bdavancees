@@ -1,4 +1,5 @@
 import sqlite3
+import time
 
 # path to our SQLite database
 sqlite_db_path = 'database.db'
@@ -6,6 +7,8 @@ sqlite_db_path = 'database.db'
 def jeanRenoMovies():
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
+
+    timeBegin = time.time()
 
     query = """
     SELECT m.originalTitle
@@ -21,9 +24,13 @@ def jeanRenoMovies():
     # fetch all results
     films = cursor.fetchall()
 
+    timeEnd = time.time()
+    totalTime = timeEnd - timeBegin
+
     # print the movie titles
     for film in films:
         print(film[0])
+    print("Execution time: {:f}".format(totalTime))
 
     # close the cursor and connection
     cursor.close()
@@ -32,6 +39,8 @@ def jeanRenoMovies():
 def troisMeilleursFilmsHorreur2000():
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
+
+    timeBegin = time.time()
 
     query = """
     SELECT m.originalTitle
@@ -48,8 +57,12 @@ def troisMeilleursFilmsHorreur2000():
 
     films = cursor.fetchall()
 
+    timeEnd = time.time()
+    totalTime = timeEnd - timeBegin
+
     for film in films:
         print(film[0])
+    print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
     conn.close()
@@ -57,6 +70,8 @@ def troisMeilleursFilmsHorreur2000():
 def scenaristesFilmsJamaisJouesEspagne():
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
+
+    timeBegin = time.time()
 
     query = """
     SELECT w.pid
@@ -73,8 +88,12 @@ def scenaristesFilmsJamaisJouesEspagne():
 
     scenaristes = cursor.fetchall()
 
+    timeEnd = time.time()
+    totalTime = timeEnd - timeBegin
+
     for scenariste in scenaristes:
         print(scenariste[0])
+    print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
     conn.close()
@@ -83,6 +102,8 @@ def scenaristesFilmsJamaisJouesEspagne():
 def acteursPlusDeRolesDansUnFilm():
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
+
+    timeBegin = time.time()
 
     query = """
     SELECT p.primaryName, COUNT(*) as count
@@ -96,8 +117,12 @@ def acteursPlusDeRolesDansUnFilm():
 
     acteurs = cursor.fetchall()
 
+    timeEnd = time.time()
+    totalTime = timeEnd - timeBegin
+
     for acteur in acteurs:
         print(acteur[0])
+    print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
     conn.close()
@@ -111,6 +136,8 @@ def acteursPlusDeRolesDansUnFilm():
 def carrierePropulseeParAvatar():
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
+
+    timeBegin = time.time()
 
     query = """
     WITH AvatarPersons AS (
@@ -151,8 +178,12 @@ def carrierePropulseeParAvatar():
 
     personnes = cursor.fetchall()
 
+    timeEnd = time.time()
+    totalTime = timeEnd - timeBegin 
+
     for personne in personnes:
         print(personne[1])
+    print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
     conn.close()
@@ -163,11 +194,11 @@ def main():
 
     print("\nTrois meilleurs filmes d'erreurs de 2000 jusqu'a 2009:")
     troisMeilleursFilmsHorreur2000()
-
+    
     print("\nScénaristes qui n'ont jamais écrit un filme qui a été joué en espagne:")
     scenaristesFilmsJamaisJouesEspagne()
 
-    print("\nActeurs qui ont joué dans plusieurs rôles au m ême filme:")
+    print("\nActeurs qui ont joué dans plusieurs rôles au même filme:")
     acteursPlusDeRolesDansUnFilm()
 
     print("\nPersonnes avec carrière propulsée par Avatar:")
