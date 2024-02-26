@@ -1,7 +1,6 @@
 import sqlite3
 import time
 
-# path to our SQLite database
 sqlite_db_path = 'database.db'
 
 def jeanRenoMovies():
@@ -27,12 +26,10 @@ def jeanRenoMovies():
     timeEnd = time.time()
     totalTime = timeEnd - timeBegin
 
-    # print the movie titles
     for film in films:
         print(film[0])
     print("Execution time: {:f}".format(totalTime))
 
-    # close the cursor and connection
     cursor.close()
     conn.close()
 
@@ -188,7 +185,54 @@ def carrierePropulseeParAvatar():
     cursor.close()
     conn.close()
 
-def main(): 
+def creeIndexes():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_persons_primaryName ON persons(primaryName)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_pid ON principals(pid)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_mid ON principals(mid)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_genres_genre ON genres(genre)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_startYear ON movies(startYear)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_mid_averageRating ON ratings(mid, averageRating)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_writers_mid ON writers(mid)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_titles_region ON titles(region)')
+
+    conn.commit()
+    conn.close()
+
+import sqlite3
+
+def supprimeIndexes(db_path):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    index_names = [
+        'idx_persons_primaryName',
+        'idx_principals_pid',
+        'idx_principals_mid',
+        'idx_genres_genre',
+        'idx_movies_startYear',
+        'idx_ratings_mid_averageRating',
+        'idx_writers_mid',
+        'idx_titles_region'
+    ]
+
+    for index_name in index_names:
+        try:
+            cursor.execute(f'DROP INDEX IF EXISTS {index_name}')
+            print(f"Index {index_name} deleted successfully.")
+        except sqlite3.OperationalError as e:
+            print(f"Error deleting index {index_name}: {e}")
+
+    conn.commit()
+    conn.close()
+
+def requetesSansIndexes():
+    supprimeIndexes('database.db')
+
+    print("\nTemps d'execution sans indexes:")
+
     print("\nFilmes de Jean Reno:")
     jeanRenoMovies()
 
@@ -204,4 +248,28 @@ def main():
     print("\nPersonnes avec carrière propulsée par Avatar:")
     carrierePropulseeParAvatar()
 
+def requetesAvecIndexes():
+    creeIndexes()
+
+    print("\nTemps d'execution avec indexes:")
+
+    print("\nFilmes de Jean Reno:")
+    jeanRenoMovies()
+
+    print("\nTrois meilleurs filmes d'erreurs de 2000 jusqu'a 2009:")
+    troisMeilleursFilmsHorreur2000()
+    
+    print("\nScénaristes qui n'ont jamais écrit un filme qui a été joué en espagne:")
+    scenaristesFilmsJamaisJouesEspagne()
+
+    print("\nActeurs qui ont joué dans plusieurs rôles au même filme:")
+    acteursPlusDeRolesDansUnFilm()
+
+    print("\nPersonnes avec carrière propulsée par Avatar:")
+    carrierePropulseeParAvatar()
+
+def main():
+    requetesAvecIndexes()
+
+# execute main
 main()
