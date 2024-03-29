@@ -64,20 +64,20 @@ def troisMeilleursFilmsHorreur2000():
     cursor.close()
     conn.close()
 
-def scenaristesFilmsJamaisJouesEspagne():
+def scenaristesFilmsJamaisJouesEspagne(): # longue et difficile a optimiser
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
 
     timeBegin = time.time()
 
     query = """
-    SELECT w.pid
+    SELECT COUNT (w.pid)
     FROM writers w
     WHERE NOT EXISTS (
-	SELECT 1
-	FROM titles t
-	WHERE w.mid = t.mid
-	AND t.region="ES"
+        SELECT 1
+        FROM titles t
+        WHERE w.mid = t.mid
+        AND t.region = "ES"
     )
     """
 
@@ -103,7 +103,7 @@ def acteursPlusDeRolesDansUnFilm():
     timeBegin = time.time()
 
     query = """
-    SELECT p.primaryName, COUNT(*) as count
+    SELECT DISTINCT p.primaryName, COUNT(*) as count
     FROM persons p
     JOIN principals pr ON p.pid = pr.pid
     GROUP BY pr.mid
@@ -117,8 +117,13 @@ def acteursPlusDeRolesDansUnFilm():
     timeEnd = time.time()
     totalTime = timeEnd - timeBegin
 
-    for acteur in acteurs:
-        print(acteur[0])
+    for i, acteur in enumerate(acteurs):
+        if i < 5:
+            print(acteur[0])
+        else: # coupe de l'affichage 
+            print("...") 
+            break 
+
     print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
@@ -189,14 +194,28 @@ def creeIndexes():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
+    # Jean Reno movies
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_persons_primaryName ON persons(primaryName)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_pid ON principals(pid)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_mid ON principals(mid)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_genres_genre ON genres(genre)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_startYear ON movies(startYear)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_mid_averageRating ON ratings(mid, averageRating)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_writers_mid ON writers(mid)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_titles_region ON titles(region)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_pid_mid ON principals(pid, mid)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_mid ON movies(mid)')
+
+    # Trois meilleurs filmes horreur de 2000 jusqu'a 2009
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_startYear ON movies(startYear);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_genres_genre ON genres(genre);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_averageRating ON ratings(averageRating);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_mid ON movies(mid);')
+
+    # Scénaristes qui n'ont jamais écrit un filme qui a été joué en espagne
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_writers_mid ON writers(mid);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_titles_region_mid ON titles(region, mid);')
+
+    # Acteurs qui ont joué dans plusieurs rôles au même filme
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_mid ON principals(mid);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_persons_pid ON persons(pid);')
+
+    # Personnes avec carrière propulsée par Avatar
+    cursor.execute('CREATE INDEX idx_movies_primaryTitle_startYear ON movies(primaryTitle, startYear);')
+    cursor.execute('CREATE INDEX idx_ratings_numVotes_mid ON ratings(numVotes, mid);')
 
     conn.commit()
     conn.close()
@@ -209,13 +228,18 @@ def supprimeIndexes(db_path):
 
     index_names = [
         'idx_persons_primaryName',
-        'idx_principals_pid',
-        'idx_principals_mid',
-        'idx_genres_genre',
+        'idx_principals_pid_mid',
+        'idx_movies_mid',
         'idx_movies_startYear',
-        'idx_ratings_mid_averageRating',
+        'idx_genres_genre',
+        'idx_ratings_averageRating',
+        'idx_movies_mid',
         'idx_writers_mid',
-        'idx_titles_region'
+        'idx_titles_region_mid',
+        'idx_principals_mid',
+        'idx_persons_pid',
+        'idx_movies_primaryTitle_startYear',
+        'idx_ratings_numVotes_mid'
     ]
 
     for index_name in index_names:
@@ -269,7 +293,14 @@ def requetesAvecIndexes():
     carrierePropulseeParAvatar()
 
 def main():
+    requetesSansIndexes()
     requetesAvecIndexes()
-
+    
 # execute main
 main()
+
+# sur sqlite3 dans le terminal, SCAN et SEARCH sont les deux types d'opérations qui sont utilisées pour les requêtes SQL.
+# SCAN est utilisé pour les requêtes qui scannent l'intégralité de la table, tandis que SEARCH est utilisé pour les requêtes qui utilisent un index.
+# le but est de ne pas utiliser SCAN, mais SEARCH pour optimiser les requêtes.
+# Pour la troisieme requete, on n'a pas arrive n'utiliser que des SEARCH
+# EXPLAIN QUERY PLAN SELECT ...
