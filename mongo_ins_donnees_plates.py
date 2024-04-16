@@ -286,7 +286,7 @@ def importRatings():
 
     mongo_client.close()
 
-def configTitles():
+def importTitles():
     mongo_collection_name = 'titles'
 
     sqlite_conn = sqlite3.connect(sqlite_db_path)
@@ -357,7 +357,7 @@ def main():
     importPrincipals()
     importProfessions()
     importRatings()
-    configTitles()
+    importTitles()
     importWriters()
 
 main()
