@@ -165,8 +165,7 @@ def importMovies():
         document['startYear'] = int(document['startYear']) if document['startYear'] else None
         document['endYear'] = int(document['endYear']) if document['endYear'] else None
         document['runtimeMinutes'] = int(document['runtimeMinutes']) if document['runtimeMinutes'] else None
-
-    mongo_collection.insert_one(document)
+        mongo_collection.insert_one(document)
 
     sqlite_cursor.close()
     sqlite_conn.close()
@@ -349,7 +348,7 @@ def importWriters():
 def main():
     importCharacters()
     importDirectors()
-    importEpisodes()
+    #importEpisodes()
     importGenres()
     importKnownformovies()
     importMovies()

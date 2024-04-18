@@ -17,10 +17,8 @@ def jeanRenoMovies():
     WHERE a.primaryName = 'Jean Reno'
     """
 
-    # execute the query
     cursor.execute(query)
 
-    # fetch all results
     films = cursor.fetchall()
 
     timeEnd = time.time()
@@ -190,38 +188,6 @@ def carrierePropulseeParAvatar():
     cursor.close()
     conn.close()
 
-def creeIndexes():
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-
-    # Jean Reno movies
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_persons_primaryName ON persons(primaryName)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_pid_mid ON principals(pid, mid)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_mid ON movies(mid)')
-
-    # Trois meilleurs filmes horreur de 2000 jusqu'a 2009
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_startYear ON movies(startYear);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_genres_genre ON genres(genre);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_averageRating ON ratings(averageRating);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_mid ON movies(mid);')
-
-    # Scénaristes qui n'ont jamais écrit un filme qui a été joué en espagne
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_writers_mid ON writers(mid);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_titles_region_mid ON titles(region, mid);')
-
-    # Acteurs qui ont joué dans plusieurs rôles au même filme
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_mid ON principals(mid);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_persons_pid ON persons(pid);')
-
-    # Personnes avec carrière propulsée par Avatar
-    cursor.execute('CREATE INDEX idx_movies_primaryTitle_startYear ON movies(primaryTitle, startYear);')
-    cursor.execute('CREATE INDEX idx_ratings_numVotes_mid ON ratings(numVotes, mid);')
-
-    conn.commit()
-    conn.close()
-
-import sqlite3
-
 def supprimeIndexes(db_path):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -252,9 +218,7 @@ def supprimeIndexes(db_path):
     conn.commit()
     conn.close()
 
-def requetesSansIndexes():
-    supprimeIndexes('database.db')
-
+def requetes():
     print("\nTemps d'execution sans indexes:")
 
     print("\nFilmes de Jean Reno:")
@@ -272,29 +236,9 @@ def requetesSansIndexes():
     print("\nPersonnes avec carrière propulsée par Avatar:")
     carrierePropulseeParAvatar()
 
-def requetesAvecIndexes():
-    creeIndexes()
-
-    print("\nTemps d'execution avec indexes:")
-
-    print("\nFilmes de Jean Reno:")
-    jeanRenoMovies()
-
-    print("\nTrois meilleurs filmes d'erreurs de 2000 jusqu'a 2009:")
-    troisMeilleursFilmsHorreur2000()
-    
-    print("\nScénaristes qui n'ont jamais écrit un filme qui a été joué en espagne:")
-    scenaristesFilmsJamaisJouesEspagne()
-
-    print("\nActeurs qui ont joué dans plusieurs rôles au même filme:")
-    acteursPlusDeRolesDansUnFilm()
-
-    print("\nPersonnes avec carrière propulsée par Avatar:")
-    carrierePropulseeParAvatar()
-
 def main():
-    requetesSansIndexes()
-    requetesAvecIndexes()
+    supprimeIndexes('database.db')
+    requetes()
     
 # execute main
 main()

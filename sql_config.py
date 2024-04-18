@@ -1,8 +1,10 @@
 import csv
 import sqlite3
 
+db_size = 'tiny'
+
 def configCharacters():
-    csv_file_path = 'imdb-medium/characters.csv'
+    csv_file_path = 'imdb-' + db_size + '/characters.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -32,7 +34,7 @@ def configCharacters():
     conn.close()
 
 def configDirectors():
-    csv_file_path = 'imdb-medium/directors.csv'
+    csv_file_path = 'imdb-' + db_size + '/directors.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -62,7 +64,7 @@ def configDirectors():
     conn.close()
 
 def configEpisodes():
-    csv_file_path = 'imdb-medium/episodes.csv'
+    csv_file_path = 'imdb-' + db_size + '/episodes.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -94,7 +96,7 @@ def configEpisodes():
     conn.close()
 
 def configGenres():
-    csv_file_path = 'imdb-medium/genres.csv'
+    csv_file_path = 'imdb-' + db_size + '/genres.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -124,7 +126,7 @@ def configGenres():
     conn.close()
 
 def configKnownformovies():
-    csv_file_path = 'imdb-medium/knownformovies.csv'
+    csv_file_path = 'imdb-' + db_size + '/knownformovies.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -154,7 +156,7 @@ def configKnownformovies():
     conn.close()
 
 def configMovies():
-    csv_file_path = 'imdb-medium/movies.csv'
+    csv_file_path = 'imdb-' + db_size + '/movies.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -190,7 +192,7 @@ def configMovies():
     conn.close()
 
 def configPersons():
-    csv_file_path = 'imdb-medium/persons.csv'
+    csv_file_path = 'imdb-' + db_size + '/persons.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -223,7 +225,7 @@ def configPersons():
     conn.close()
 
 def configPrincipals():
-    csv_file_path = 'imdb-medium/principals.csv'
+    csv_file_path = 'imdb-' + db_size + '/principals.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -256,7 +258,7 @@ def configPrincipals():
     conn.close()
 
 def configProfessions():
-    csv_file_path = 'imdb-medium/professions.csv'
+    csv_file_path = 'imdb-' + db_size + '/professions.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -287,7 +289,7 @@ def configProfessions():
     conn.close()
 
 def configRatings():
-    csv_file_path = 'imdb-medium/ratings.csv'
+    csv_file_path = 'imdb-' + db_size + '/ratings.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -321,7 +323,7 @@ def configRatings():
     conn.close()
 
 def configTitles():
-    csv_file_path = 'imdb-medium/titles.csv'
+    csv_file_path = 'imdb-' + db_size + '/titles.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -363,7 +365,7 @@ def configTitles():
     conn.close()
 
 def configWriters():
-    csv_file_path = 'imdb-medium/writers.csv'
+    csv_file_path = 'imdb-' + db_size + '/writers.csv'
 
     sqlite_db_path = 'database.db'
 
@@ -401,7 +403,7 @@ def configWriters():
 def main():
     configCharacters()
     configDirectors()
-    configEpisodes()
+    #configEpisodes()
     configGenres()
     configKnownformovies()
     configMovies()
@@ -411,5 +413,6 @@ def main():
     configRatings()
     configTitles()
     configWriters()
+    
 
 main()
