@@ -10,11 +10,10 @@ def jeanRenoMovies():
     timeBegin = time.time()
 
     query = """
-    SELECT m.originalTitle
-    FROM movies m
-    JOIN principals p ON m.mid = p.mid
-    JOIN persons a ON p.pid = a.pid
-    WHERE a.primaryName = 'Jean Reno'
+    SELECT DISTINCT primaryTitle FROM movies
+    JOIN characters ON movies.mid = characters.mid
+    JOIN persons ON characters.pid = persons.pid
+    WHERE primaryName='Jean Reno'
     """
 
     cursor.execute(query)
@@ -38,12 +37,12 @@ def troisMeilleursFilmsHorreur2000():
     timeBegin = time.time()
 
     query = """
-    SELECT m.originalTitle
+    SELECT m.primaryTitle
     FROM movies m
     JOIN genres g ON m.mid = g.mid
     JOIN ratings r ON m.mid = r.mid
     WHERE g.genre = 'Horror' AND m.startYear BETWEEN 2000 AND 2009
-    GROUP BY m.originalTitle
+    GROUP BY m.primaryTitle
     ORDER BY averageRating DESC
     LIMIT 3
     """
@@ -69,13 +68,13 @@ def scenaristesFilmsJamaisJouesEspagne(): # longue et difficile a optimiser
     timeBegin = time.time()
 
     query = """
-    SELECT COUNT (w.pid)
-    FROM writers w
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM titles t
-        WHERE w.mid = t.mid
-        AND t.region = "ES"
+    SELECT DISTINCT COUNT(primaryName) FROM persons
+    JOIN writers ON writers.pid = persons.pid
+    JOIN titles ON titles.mid = writers.mid
+    WHERE titles.mid NOT in(
+        SELECT mid
+        FROM titles
+        WHERE region='ES'
     )
     """
 
@@ -86,8 +85,8 @@ def scenaristesFilmsJamaisJouesEspagne(): # longue et difficile a optimiser
     timeEnd = time.time()
     totalTime = timeEnd - timeBegin
 
-    for scenariste in scenaristes:
-        print(scenariste[0])
+    print(scenaristes[0])
+            
     print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
@@ -101,11 +100,12 @@ def acteursPlusDeRolesDansUnFilm():
     timeBegin = time.time()
 
     query = """
-    SELECT DISTINCT p.primaryName, COUNT(*) as count
-    FROM persons p
-    JOIN principals pr ON p.pid = pr.pid
-    GROUP BY pr.mid
-    ORDER BY count DESC
+    SELECT DISTINCT persons.primaryName, COUNT (DISTINCT characters.name) AS totalRoles
+    FROM characters
+    JOIN persons ON characters.pid = persons.pid
+    GROUP BY characters.pid, characters.mid
+    ORDER BY totalRoles DESC
+    LIMIT 5;
     """
 
     cursor.execute(query)
@@ -115,12 +115,8 @@ def acteursPlusDeRolesDansUnFilm():
     timeEnd = time.time()
     totalTime = timeEnd - timeBegin
 
-    for i, acteur in enumerate(acteurs):
-        if i < 5:
-            print(acteur[0])
-        else: # coupe de l'affichage 
-            print("...") 
-            break 
+    for acteur in acteurs:
+        print(acteur[0], acteur[1])
 
     print("Execution time: {:f}".format(totalTime))
 
@@ -140,38 +136,42 @@ def carrierePropulseeParAvatar():
     timeBegin = time.time()
 
     query = """
-    WITH AvatarPersons AS (
-        SELECT DISTINCT p.pid
-        FROM principals AS p
-        JOIN movies AS m ON p.mid = m.mid
-        WHERE m.primaryTitle = 'Avatar' AND m.startYear = 2009
+    WITH AvatarActors AS (
+        SELECT DISTINCT pr.pid
+        FROM principals pr
+        JOIN movies m ON pr.mid = m.mid
+        WHERE m.primaryTitle = 'Avatar'
     ),
-    BeforeAvatar AS (
-        SELECT p.pid, COUNT(m.mid) AS MovieCount
-        FROM principals AS p
-        JOIN movies AS m ON p.mid = m.mid
-        JOIN ratings AS r ON m.mid = r.mid
+    NotKnownBefore2009 AS (
+        SELECT DISTINCT pr.pid
+        FROM principals pr
+        JOIN movies m ON pr.mid = m.mid
+        JOIN ratings r ON m.mid = r.mid
         WHERE m.startYear < 2009 AND r.numVotes < 200000
-        GROUP BY p.pid
+        EXCEPT
+        SELECT DISTINCT pr.pid
+        FROM principals pr
+        JOIN movies m ON pr.mid = m.mid
+        JOIN ratings r ON m.mid = r.mid
+        WHERE m.startYear < 2009 AND r.numVotes > 200000
     ),
-    AfterAvatarSuccess AS (
-        SELECT p.pid, COUNT(m.mid) AS MovieCount
-        FROM principals AS p
-        JOIN movies AS m ON p.mid = m.mid
-        JOIN ratings AS r ON m.mid = r.mid
+    KnownAfter2009 AS (
+        SELECT DISTINCT pr.pid
+        FROM principals pr
+        JOIN movies m ON pr.mid = m.mid
+        JOIN ratings r ON m.mid = r.mid
         WHERE m.startYear > 2009 AND r.numVotes > 200000
-        GROUP BY p.pid
     ),
-    EligiblePersons AS (
-        SELECT ap.pid
-        FROM AvatarPersons AS ap
-        JOIN AfterAvatarSuccess AS aas ON ap.pid = aas.pid
-        LEFT JOIN BeforeAvatar AS ba ON ap.pid = ba.pid
-        WHERE ba.pid IS NULL OR ba.MovieCount = 0
+    QualifiedActors AS (
+        SELECT pid FROM AvatarActors
+        INTERSECT
+        SELECT pid FROM NotKnownBefore2009
+        INTERSECT
+        SELECT pid FROM KnownAfter2009
     )
-    SELECT p.pid, p.primaryName, p.birthYear
-    FROM EligiblePersons AS ep
-    JOIN persons AS p ON ep.pid = p.pid;
+    SELECT p.primaryName
+    FROM QualifiedActors
+    JOIN persons p ON QualifiedActors.pid = p.pid;
     """
 
     cursor.execute(query)
@@ -182,41 +182,52 @@ def carrierePropulseeParAvatar():
     totalTime = timeEnd - timeBegin 
 
     for personne in personnes:
-        print(personne[1])
+        print(personne[0])
     print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
     conn.close()
 
+
 def creeIndexes():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
-    # Jean Reno movies
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_persons_primaryName ON persons(primaryName)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_pid_mid ON principals(pid, mid)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_mid ON movies(mid)')
+    index_queries = [
+        # indexes pour 1ere requete
+        "CREATE INDEX IF NOT EXISTS idx_movies_mid ON movies(mid);",
+        "CREATE INDEX IF NOT EXISTS idx_characters_mid ON characters(mid);",
+        "CREATE INDEX IF NOT EXISTS idx_characters_pid ON characters(pid);",
+        "CREATE INDEX IF NOT EXISTS idx_persons_pid ON persons(pid);",
+        "CREATE INDEX IF NOT EXISTS idx_persons_primaryName ON persons(primaryName);",
+        # indexes pour 2eme requete
+        "CREATE INDEX IF NOT EXISTS idx_genres_mid ON genres(mid);",
+        "CREATE INDEX IF NOT EXISTS idx_ratings_mid ON ratings(mid);",
+        "CREATE INDEX IF NOT EXISTS idx_movies_startYear ON movies(startYear);",
+        # indexes pour 3eme requete
+        "CREATE INDEX IF NOT EXISTS idx_writers_pid ON writers(pid);",
+        "CREATE INDEX IF NOT EXISTS idx_writers_mid ON writers(mid);",
+        "CREATE INDEX IF NOT EXISTS idx_titles_mid ON titles(mid);",
+        "CREATE INDEX IF NOT EXISTS idx_titles_region ON titles(region);",
+        # indexe pour 4eme requete
+        "CREATE INDEX IF NOT EXISTS idx_characters_pid_mid ON characters(pid, mid);",
+        # indexes pour 5eme requete
+        "CREATE INDEX IF NOT EXISTS idx_principals_pid_mid ON principals(pid, mid);",
+        "CREATE INDEX IF NOT EXISTS idx_movies_primaryTitle ON movies(primaryTitle);",
+        "CREATE INDEX IF NOT EXISTS idx_ratings_numVotes ON ratings(numVotes);"
+    ]
 
-    # Trois meilleurs filmes horreur de 2000 jusqu'a 2009
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_startYear ON movies(startYear);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_genres_genre ON genres(genre);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_averageRating ON ratings(averageRating);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_movies_mid ON movies(mid);')
+    try:
+        for query in index_queries:
+            cursor.execute(query)
+        conn.commit()
+        print("Indexes created successfully.")
+    except sqlite3.Error as e:
+        print(f"An error occurred while creating indexes: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
-    # Scénaristes qui n'ont jamais écrit un filme qui a été joué en espagne
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_writers_mid ON writers(mid);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_titles_region_mid ON titles(region, mid);')
-
-    # Acteurs qui ont joué dans plusieurs rôles au même filme
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_principals_mid ON principals(mid);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_persons_pid ON persons(pid);')
-
-    # Personnes avec carrière propulsée par Avatar
-    cursor.execute('CREATE INDEX idx_movies_primaryTitle_startYear ON movies(primaryTitle, startYear);')
-    cursor.execute('CREATE INDEX idx_ratings_numVotes_mid ON ratings(numVotes, mid);')
-
-    conn.commit()
-    conn.close()
 
 def requetes():
     print("\nTemps d'execution avec indexes:")
@@ -241,5 +252,3 @@ def main():
     requetes()
 
 main()
-
-

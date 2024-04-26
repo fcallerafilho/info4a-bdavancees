@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 import sqlite3
+import time
 
 sqlite_db_path = 'database.db'
 mongo_db_uri = 'mongodb://localhost:27017/'
@@ -242,7 +243,7 @@ def importProfessions():
     mongo_client = MongoClient(mongo_db_uri)
     mongo_db = mongo_client[mongo_db_name]
     mongo_collection = mongo_db[mongo_collection_name]
-
+    
     mongo_collection.drop()
 
     for row in rows:
@@ -346,17 +347,33 @@ def importWriters():
     mongo_client.close()
 
 def main():
+    timeBegin = time.time()
     importCharacters()
+    print("Characters imported")
     importDirectors()
-    #importEpisodes()
+    print("Directors imported")
+    importEpisodes()
+    print("Episodes imported")
     importGenres()
+    print("Genres imported")
     importKnownformovies()
+    print("Knownformovies imported")
     importMovies()
+    print("Movies imported")
     importPersons()
+    print("Persons imported")
     importPrincipals()
+    print("Principals imported")
     importProfessions()
+    print("Professions imported")
     importRatings()
+    print("Ratings imported")
     importTitles()
+    print("Titles imported")
     importWriters()
+    print("Writers imported")
+    timeEnd = time.time()
+    totalTime = timeEnd - timeBegin
+    print("Execution time: {:f}".format(totalTime))
 
 main()

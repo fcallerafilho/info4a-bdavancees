@@ -1,33 +1,35 @@
 import csv
 import sqlite3
+import time
 
-db_size = 'tiny'
+db_size = 'medium'
 
 def configCharacters():
     csv_file_path = 'imdb-' + db_size + '/characters.csv'
-
+    sql_file_path = 'sqls/characters.sql'
     sqlite_db_path = 'database.db'
-
+    
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
 
     cursor.execute('DROP TABLE IF EXISTS characters')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS characters (
-            mid TEXT,
-            pid TEXT,
-            name TEXT
-        )
-    ''')
 
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
+
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO characters (mid, pid, name)
-                VALUES (?, ?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO characters (mid, pid, name)
+            VALUES (?, ?, ?)
+        ''', row)
 
     conn.commit()
     cursor.close()
@@ -35,7 +37,7 @@ def configCharacters():
 
 def configDirectors():
     csv_file_path = 'imdb-' + db_size + '/directors.csv'
-
+    sql_file_path = 'sqls/directors.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -43,21 +45,22 @@ def configDirectors():
 
     cursor.execute('DROP TABLE IF EXISTS directors')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS directors (
-            mid TEXT,
-            pid TEXT
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)  
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO directors (mid, pid)
-                VALUES (?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))  
+            
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO directors (mid, pid)
+            VALUES (?, ?)
+        ''', row)
 
     conn.commit()
     cursor.close()
@@ -65,7 +68,7 @@ def configDirectors():
 
 def configEpisodes():
     csv_file_path = 'imdb-' + db_size + '/episodes.csv'
-
+    sql_file_path = 'sqls/episodes.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -73,23 +76,22 @@ def configEpisodes():
 
     cursor.execute('DROP TABLE IF EXISTS episodes')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS episodes (
-            mid TEXT,
-            parentMid TEXT,
-            seasonNumber NUMBER,
-            episodeNumber NUMBER
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO episodes (mid, parentMid, seasonNumber, episodeNumber)
-                VALUES (?, ?, ?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO episodes (mid, parentMid, seasonNumber, episodeNumber)
+            VALUES (?, ?, ?, ?)
+        ''', row)
 
     conn.commit()
     cursor.close()
@@ -97,7 +99,7 @@ def configEpisodes():
 
 def configGenres():
     csv_file_path = 'imdb-' + db_size + '/genres.csv'
-
+    sql_file_path = 'sqls/genres.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -105,21 +107,22 @@ def configGenres():
 
     cursor.execute('DROP TABLE IF EXISTS genres')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS genres (
-            mid TEXT,
-            genre TEXT
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO genres (mid, genre)
-                VALUES (?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO genres (mid, genre)
+            VALUES (?, ?)
+        ''', row)
 
     conn.commit()
     cursor.close()
@@ -127,7 +130,7 @@ def configGenres():
 
 def configKnownformovies():
     csv_file_path = 'imdb-' + db_size + '/knownformovies.csv'
-
+    sql_file_path = 'sqls/knownformovies.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -135,21 +138,22 @@ def configKnownformovies():
 
     cursor.execute('DROP TABLE IF EXISTS knownformovies')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS knownformovies (
-            pid TEXT,
-            mid TEXT
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO knownformovies (pid, mid)
-                VALUES (?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO knownformovies (pid, mid)
+            VALUES (?, ?)
+        ''', row)
 
     conn.commit()
     cursor.close()
@@ -157,7 +161,7 @@ def configKnownformovies():
 
 def configMovies():
     csv_file_path = 'imdb-' + db_size + '/movies.csv'
-
+    sql_file_path = 'sqls/movies.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -165,27 +169,22 @@ def configMovies():
 
     cursor.execute('DROP TABLE IF EXISTS movies')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS movies (
-            mid TEXT,
-            titleType TEXT,
-            primaryTitle TEXT,
-            originalTitle TEXT,
-            isAdult INTEGER,
-            startYear INTEGER,
-            endYear INTEGER,
-            runtimeMinutes INTEGER
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO movies (mid, titleType, primaryTitle, originalTitle, isAdult, startYear, endYear, runtimeMinutes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO movies (mid, titleType, primaryTitle, originalTitle, isAdult, startYear, endYear, runtimeMinutes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', row)
 
     conn.commit()
     cursor.close()
@@ -193,7 +192,7 @@ def configMovies():
 
 def configPersons():
     csv_file_path = 'imdb-' + db_size + '/persons.csv'
-
+    sql_file_path = 'sqls/persons.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -201,23 +200,22 @@ def configPersons():
 
     cursor.execute('DROP TABLE IF EXISTS persons')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS persons (
-            pid TEXT,
-            primaryName TEXT,
-            birthYear INTEGER,
-            deathYear INTEGER
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None) 
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO persons (pid, primaryName, birthYear, deathYear)
-                VALUES (?, ?, ?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO persons (pid, primaryName, birthYear, deathYear)
+            VALUES (?, ?, ?, ?)
+        ''', row)
 
     # Commit the changes and close the connection
     conn.commit()
@@ -226,7 +224,7 @@ def configPersons():
 
 def configPrincipals():
     csv_file_path = 'imdb-' + db_size + '/principals.csv'
-
+    sql_file_path = 'sqls/principals.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -234,24 +232,22 @@ def configPrincipals():
 
     cursor.execute('DROP TABLE IF EXISTS principals')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS principals (
-            mid TEXT,
-            ordering INTEGER,
-            pid TEXT,
-            category TEXT,
-            job TEXT
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)  # Skip the header
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO principals (mid, ordering, pid, category, job)
-                VALUES (?, ?, ?, ?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))  # Add each row as a tuple to the set, which automatically removes duplicates
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO principals (mid, ordering, pid, category, job)
+            VALUES (?, ?, ?, ?, ?)
+        ''', row)
 
     conn.commit()
     cursor.close()
@@ -259,7 +255,7 @@ def configPrincipals():
 
 def configProfessions():
     csv_file_path = 'imdb-' + db_size + '/professions.csv'
-
+    sql_file_path = 'sqls/professions.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -267,21 +263,22 @@ def configProfessions():
 
     cursor.execute('DROP TABLE IF EXISTS professions')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS professions (
-            pid TEXT,
-            jobName TEXT
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)  # Skip the header
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO professions (pid, jobName)
-                VALUES (?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))  # Add each row as a tuple to the set, which automatically removes duplicates
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO professions (pid, jobName)
+            VALUES (?, ?)
+        ''', row)
 
     # Commit the changes and close the connection
     conn.commit()
@@ -290,7 +287,7 @@ def configProfessions():
 
 def configRatings():
     csv_file_path = 'imdb-' + db_size + '/ratings.csv'
-
+    sql_file_path = 'sqls/ratings.sql'
     sqlite_db_path = 'database.db'
 
     conn = sqlite3.connect(sqlite_db_path)
@@ -299,23 +296,22 @@ def configRatings():
     cursor.execute('DROP TABLE IF EXISTS ratings')
 
     # Create a table for the characters data
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ratings (
-            mid TEXT,
-            averageRating REAL,
-            numVotes INTEGER
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
-    # Open the CSV file and insert the data
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)  # Skip the header
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO ratings (mid, averageRating, numVotes)
-                VALUES (?, ?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))  # Add each row as a tuple to the set, which automatically removes duplicates
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO ratings (mid, averageRating, numVotes)
+            VALUES (?, ?, ?)
+        ''', row)
 
     # Commit the changes and close the connection
     conn.commit()
@@ -324,7 +320,7 @@ def configRatings():
 
 def configTitles():
     csv_file_path = 'imdb-' + db_size + '/titles.csv'
-
+    sql_file_path = 'sqls/titles.sql'
     sqlite_db_path = 'database.db'
 
     # Connect to the SQLite database
@@ -334,30 +330,22 @@ def configTitles():
     # Drop the table if it already exists
     cursor.execute('DROP TABLE IF EXISTS titles')
 
-    # Create a table for the characters data
-    # Adjust the data types according to the contents of your CSV
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS titles (
-            mid TEXT,
-            ordering INTEGER,
-            title TEXT,
-            region TEXT,
-            language TEXT,
-            types TEXT,
-            attributes TEXT,
-            isOriginalTitle INTEGER
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
-    # Open the CSV file and insert the data
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)  # Skip the header
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO titles (mid, ordering, title, region, language, types, attributes, isOriginalTitle)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))  # Add each row as a tuple to the set, which automatically removes duplicates
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO titles (mid, ordering, title, region, language, types, attributes, isOriginalTitle)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', row)
 
     # Commit the changes and close the connection
     conn.commit()
@@ -366,34 +354,30 @@ def configTitles():
 
 def configWriters():
     csv_file_path = 'imdb-' + db_size + '/writers.csv'
-
+    sql_file_path = 'sqls/writers.sql'
     sqlite_db_path = 'database.db'
 
-    # Connect to the SQLite database
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
 
-    # Drop the table if it already exists
     cursor.execute('DROP TABLE IF EXISTS writers')
 
-    # Create a table for the characters data
-    # Adjust the data types according to the contents of your CSV
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS writers (
-            mid TEXT,
-            pid TEXT
-        )
-    ''')
+    with open(sql_file_path, 'r') as sql_file:
+        sql_script = sql_file.read()
+        cursor.executescript(sql_script)
 
-    # Open the CSV file and insert the data
+    unique_rows = set()
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
-        next(csv_reader, None)  # Skip the header row
+        next(csv_reader, None)  # Skip the header
         for row in csv_reader:
-            cursor.execute('''
-                INSERT INTO writers (mid, pid)
-                VALUES (?, ?)
-            ''', row)
+            unique_rows.add(tuple(row))  # Add each row as a tuple to the set, which automatically removes duplicates
+
+    for row in unique_rows:
+        cursor.execute('''
+            INSERT INTO writers (mid, pid)
+            VALUES (?, ?)
+        ''', row)
 
     # Commit the changes and close the connection
     conn.commit()
@@ -401,18 +385,33 @@ def configWriters():
     conn.close()
 
 def main():
+    timeBegin = time.time()
     configCharacters()
+    print("Characters done")
     configDirectors()
-    #configEpisodes()
+    print("Directors done")
+    configEpisodes()
+    print("Episodes done")
     configGenres()
+    print("Genres done")
     configKnownformovies()
+    print("Knownformovies done")
     configMovies()
+    print("Movies done")
     configPersons()
+    print("Persons done")
     configPrincipals()
+    print("Principals done")
     configProfessions()
+    print("Professions done")
     configRatings()
+    print("Ratings done")
     configTitles()
+    print("Titles done")
     configWriters()
-    
+    print("Writers done")
+    timeEnd = time.time()
+    totalTime = timeEnd - timeBegin
+    print("Execution time: {:f}".format(totalTime))
 
 main()

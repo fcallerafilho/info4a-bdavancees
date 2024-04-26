@@ -1,53 +1,68 @@
 from pymongo import MongoClient
+import pymongo
+import time
 
 mongo_client = MongoClient('mongodb://localhost:27017/')
 mongo_db = mongo_client['imdb']
 
 characters_collection = mongo_db['characters']
-directors_collection = mongo_db['directors']
+# directors_collection = mongo_db['directors']
 episodes_collection = mongo_db['episodes']
 genres_collection = mongo_db['genres']
-knownformovies_collection = mongo_db['knownformovies']
+# knownformovies_collection = mongo_db['knownformovies']
 movies_collection = mongo_db['movies']
 persons_collection = mongo_db['persons']
-principals_collection = mongo_db['principals']
-professions_collection = mongo_db['professions']
+# principals_collection = mongo_db['principals']
+# professions_collection = mongo_db['professions']
 ratings_collection = mongo_db['ratings']
 titles_collection = mongo_db['titles']
-writers_collection = mongo_db['writers']
+# writers_collection = mongo_db['writers']
 
 aggregated_films_collection = mongo_db['aggregated_films']
 aggregated_films_collection.drop()
 
-persons_with_movies_collection = mongo_db['persons_with_movies']
-persons_with_movies_collection.drop()
+batch_size = 100
+cursor = movies_collection.find({}) 
+batch = []
 
-for person in persons_collection.find():
-    movies_cursor = principals_collection.find({'pid': person['pid']}, {'_id': 0, 'mid': 1})
-    movie_ids = [movie['mid'] for movie in movies_cursor]  # Extract just the movie IDs
+def ensure_indexes():
+    mongo_db['movies'].create_index([('mid', pymongo.ASCENDING)], unique=True)    
+    mongo_db['characters'].create_index([('mid', pymongo.ASCENDING)])
+    mongo_db['genres'].create_index([('mid', pymongo.ASCENDING)])    
+    mongo_db['persons'].create_index([('pid', pymongo.ASCENDING)])    
+    mongo_db['ratings'].create_index([('mid', pymongo.ASCENDING)])
+    mongo_db['titles'].create_index([('mid', pymongo.ASCENDING)])
+    print("Indexes created successfully.")
 
-    person_with_movies = person.copy()  
-    person_with_movies['movie_ids'] = movie_ids
+def process_batch(batch):
+    for movie in batch:
+        characters_list = list(mongo_db['characters'].find({'mid': movie['mid']}))
+        characters_pid_list = [character['pid'] for character in characters_list]
+        aggregated_film = {
+            'movie': movie,
+            'characters': characters_list,
+            'genres': list(mongo_db['genres'].find({'mid': movie['mid']})),
+            'persons': list(mongo_db['persons'].find({'pid': {"$in": characters_pid_list}})),
+            'ratings': list(mongo_db['ratings'].find({'mid': movie['mid']})),
+            'titles': list(mongo_db['titles'].find({'mid': movie['mid']}))
+        }
+        aggregated_films_collection.insert_one(aggregated_film)
+    print(f'Inserted {len(batch)} aggregated films')
 
-    persons_with_movies_collection.insert_one(person_with_movies)
-    print('a')
+ensure_indexes()
 
-for movie in movies_collection.find():
-    aggregated_film = {
-        'movie': movie,
-        'characters': list(characters_collection.find({'mid': movie['mid']})),
-        #'directors': list(directors_collection.find({'mid': movie['mid']})),
-        #'episodes': list(episodes_collection.find({'parentMid': movie['mid']})),
-        #'genres': list(genres_collection.find({'mid': movie['mid']})),
-        #'knownformovies': list(knownformovies_collection.find({'mid': movie['mid']})),
-        'persons': list(persons_with_movies_collection.find({'mid': movie['mid']})),
-        #'principals': list(principals_collection.find({'mid': movie['mid']})),
-        'ratings': list(directors_collection.find({'mid': movie['mid']})),
-        'titles': list(titles_collection.find({'mid': movie['mid']})),
-        #'writers': list(titles_collection.find({'mid': movie['mid']}))
-    }
+time_begin = time.time()
 
-    aggregated_films_collection.insert_one(aggregated_film)
-    print('b')
+for movie in cursor:
+    batch.append(movie)
+    if len(batch) >= batch_size:
+        process_batch(batch)
+        batch = []
+
+if batch:
+    process_batch(batch)
+
+time_end = time.time()
+print(f"Execution time: {time_end - time_begin:.3f} seconds")
 
 mongo_client.close()

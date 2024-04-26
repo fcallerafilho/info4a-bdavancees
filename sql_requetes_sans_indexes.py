@@ -10,11 +10,10 @@ def jeanRenoMovies():
     timeBegin = time.time()
 
     query = """
-    SELECT m.originalTitle
-    FROM movies m
-    JOIN principals p ON m.mid = p.mid
-    JOIN persons a ON p.pid = a.pid
-    WHERE a.primaryName = 'Jean Reno'
+    SELECT DISTINCT primaryTitle FROM movies
+    JOIN characters ON movies.mid = characters.mid
+    JOIN persons ON characters.pid = persons.pid
+    WHERE primaryName='Jean Reno'
     """
 
     cursor.execute(query)
@@ -38,12 +37,12 @@ def troisMeilleursFilmsHorreur2000():
     timeBegin = time.time()
 
     query = """
-    SELECT m.originalTitle
+    SELECT m.primaryTitle
     FROM movies m
     JOIN genres g ON m.mid = g.mid
     JOIN ratings r ON m.mid = r.mid
     WHERE g.genre = 'Horror' AND m.startYear BETWEEN 2000 AND 2009
-    GROUP BY m.originalTitle
+    GROUP BY m.primaryTitle
     ORDER BY averageRating DESC
     LIMIT 3
     """
@@ -69,13 +68,13 @@ def scenaristesFilmsJamaisJouesEspagne(): # longue et difficile a optimiser
     timeBegin = time.time()
 
     query = """
-    SELECT COUNT (w.pid)
-    FROM writers w
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM titles t
-        WHERE w.mid = t.mid
-        AND t.region = "ES"
+    SELECT DISTINCT COUNT(primaryName) FROM persons
+    JOIN writers ON writers.pid = persons.pid
+    JOIN titles ON titles.mid = writers.mid
+    WHERE titles.mid NOT in(
+        SELECT mid
+        FROM titles
+        WHERE region='ES'
     )
     """
 
@@ -86,8 +85,8 @@ def scenaristesFilmsJamaisJouesEspagne(): # longue et difficile a optimiser
     timeEnd = time.time()
     totalTime = timeEnd - timeBegin
 
-    for scenariste in scenaristes:
-        print(scenariste[0])
+    print(scenaristes[0])
+            
     print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
@@ -101,11 +100,12 @@ def acteursPlusDeRolesDansUnFilm():
     timeBegin = time.time()
 
     query = """
-    SELECT DISTINCT p.primaryName, COUNT(*) as count
-    FROM persons p
-    JOIN principals pr ON p.pid = pr.pid
-    GROUP BY pr.mid
-    ORDER BY count DESC
+    SELECT DISTINCT persons.primaryName, COUNT (DISTINCT characters.name) AS totalRoles
+    FROM characters
+    JOIN persons ON characters.pid = persons.pid
+    GROUP BY characters.pid, characters.mid
+    ORDER BY totalRoles DESC
+    LIMIT 5;
     """
 
     cursor.execute(query)
@@ -115,12 +115,8 @@ def acteursPlusDeRolesDansUnFilm():
     timeEnd = time.time()
     totalTime = timeEnd - timeBegin
 
-    for i, acteur in enumerate(acteurs):
-        if i < 5:
-            print(acteur[0])
-        else: # coupe de l'affichage 
-            print("...") 
-            break 
+    for acteur in acteurs:
+        print(acteur[0], acteur[1])
 
     print("Execution time: {:f}".format(totalTime))
 
@@ -140,38 +136,44 @@ def carrierePropulseeParAvatar():
     timeBegin = time.time()
 
     query = """
-    WITH AvatarPersons AS (
-        SELECT DISTINCT p.pid
-        FROM principals AS p
-        JOIN movies AS m ON p.mid = m.mid
-        WHERE m.primaryTitle = 'Avatar' AND m.startYear = 2009
+    WITH AvatarActors AS (
+        SELECT DISTINCT pr.pid
+        FROM principals pr
+        JOIN movies m ON pr.mid = m.mid
+        WHERE m.primaryTitle = 'Avatar'
     ),
-    BeforeAvatar AS (
-        SELECT p.pid, COUNT(m.mid) AS MovieCount
-        FROM principals AS p
-        JOIN movies AS m ON p.mid = m.mid
-        JOIN ratings AS r ON m.mid = r.mid
+    NotKnownBefore2009 AS (
+        -- Select distinct PIDs not appearing in any high-vote movies before 2009
+        SELECT DISTINCT pr.pid
+        FROM principals pr
+        JOIN movies m ON pr.mid = m.mid
+        JOIN ratings r ON m.mid = r.mid
         WHERE m.startYear < 2009 AND r.numVotes < 200000
-        GROUP BY p.pid
+        EXCEPT
+        -- Exclude PIDs who appeared in high-vote movies before 2009
+        SELECT DISTINCT pr.pid
+        FROM principals pr
+        JOIN movies m ON pr.mid = m.mid
+        JOIN ratings r ON m.mid = r.mid
+        WHERE m.startYear < 2009 AND r.numVotes > 200000
     ),
-    AfterAvatarSuccess AS (
-        SELECT p.pid, COUNT(m.mid) AS MovieCount
-        FROM principals AS p
-        JOIN movies AS m ON p.mid = m.mid
-        JOIN ratings AS r ON m.mid = r.mid
+    KnownAfter2009 AS (
+        SELECT DISTINCT pr.pid
+        FROM principals pr
+        JOIN movies m ON pr.mid = m.mid
+        JOIN ratings r ON m.mid = r.mid
         WHERE m.startYear > 2009 AND r.numVotes > 200000
-        GROUP BY p.pid
     ),
-    EligiblePersons AS (
-        SELECT ap.pid
-        FROM AvatarPersons AS ap
-        JOIN AfterAvatarSuccess AS aas ON ap.pid = aas.pid
-        LEFT JOIN BeforeAvatar AS ba ON ap.pid = ba.pid
-        WHERE ba.pid IS NULL OR ba.MovieCount = 0
+    QualifiedActors AS (
+        SELECT pid FROM AvatarActors
+        INTERSECT
+        SELECT pid FROM NotKnownBefore2009
+        INTERSECT
+        SELECT pid FROM KnownAfter2009
     )
-    SELECT p.pid, p.primaryName, p.birthYear
-    FROM EligiblePersons AS ep
-    JOIN persons AS p ON ep.pid = p.pid;
+    SELECT p.primaryName
+    FROM QualifiedActors
+    JOIN persons p ON QualifiedActors.pid = p.pid;
     """
 
     cursor.execute(query)
@@ -182,7 +184,7 @@ def carrierePropulseeParAvatar():
     totalTime = timeEnd - timeBegin 
 
     for personne in personnes:
-        print(personne[1])
+        print(personne[0])
     print("Execution time: {:f}".format(totalTime))
 
     cursor.close()
@@ -193,19 +195,22 @@ def supprimeIndexes(db_path):
     cursor = conn.cursor()
 
     index_names = [
-        'idx_persons_primaryName',
-        'idx_principals_pid_mid',
         'idx_movies_mid',
-        'idx_movies_startYear',
-        'idx_genres_genre',
-        'idx_ratings_averageRating',
-        'idx_movies_mid',
-        'idx_writers_mid',
-        'idx_titles_region_mid',
-        'idx_principals_mid',
+        'idx_characters_mid',
+        'idx_characters_pid',
         'idx_persons_pid',
-        'idx_movies_primaryTitle_startYear',
-        'idx_ratings_numVotes_mid'
+        'idx_persons_primaryName',
+        'idx_genres_mid',
+        'idx_ratings_mid',
+        'idx_movies_startYear',
+        'idx_writers_pid'
+        'idx_writers_mid',
+        'idx_titles_mid',
+        'idx_title_region'
+        'idx_characters_pid_mid',
+        'idx_principals_pid_mid',
+        'idx_movies_primaryTitle',
+        'idx_ratings_numVotes',
     ]
 
     for index_name in index_names:
@@ -214,6 +219,17 @@ def supprimeIndexes(db_path):
             print(f"Index {index_name} deleted successfully.")
         except sqlite3.OperationalError as e:
             print(f"Error deleting index {index_name}: {e}")
+
+    # pour supprimer tous les indexes qui peuvent exister à cause des changements sur les requêtes
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND sql IS NOT NULL;")
+    indexes = cursor.fetchall()
+
+    # Drop each index
+    for index in indexes:
+        index_name = index[0]  # Extract the index name
+        drop_statement = f"DROP INDEX IF EXISTS {index_name};"
+        cursor.execute(drop_statement)
+        print(f"Dropped index: {index_name}")
 
     conn.commit()
     conn.close()
@@ -240,7 +256,6 @@ def main():
     supprimeIndexes('database.db')
     requetes()
     
-# execute main
 main()
 
 # sur sqlite3 dans le terminal, SCAN et SEARCH sont les deux types d'opérations qui sont utilisées pour les requêtes SQL.

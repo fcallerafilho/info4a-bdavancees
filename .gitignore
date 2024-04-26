@@ -1,4 +1,5 @@
 database.db
+__pycache__/
 imdb-full/
 imdb-medium/
 imdb-small/
